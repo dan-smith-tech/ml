@@ -189,3 +189,59 @@ permute_tensor_small = torch.rand(size=(2, 2))
 print(
     f"Permute tensor {permute_tensor_small} by swapping axis 0->1, 1->0: {permute_tensor_small.permute(1, 0)}"
 )
+print()
+
+# Indexing tensors
+index_tensor = torch.arange(1, 10).reshape(1, 3, 3)
+print(f"Tensor to index: {index_tensor}")
+print(f"index_tensor[0][0]: {index_tensor[0][0]}")
+print(f"index_tensor[0][0][0]: {index_tensor[0][0][0]}")
+print(f"index_tensor[0][2][2]: {index_tensor[0][2][2]}")
+print(f"index_tensor[0][:]: {index_tensor[0][:]}")
+print()
+
+# PyTorch tensors and NumPy
+# might start with np data and want a torch tensor
+import numpy as np
+
+np_array = np.arange(1.0, 8.0)
+tensor = torch.from_numpy(np_array)
+print(f"Tensor from NumPy array: {tensor}")
+# note np default dtype is float64, whereas torch default dtype is float32
+tensor_for_np = torch.ones(7)
+np_array = tensor_for_np.numpy()
+print(f"NumPy array from tensor: {np_array}")
+# note dtypes are preserved through both conversions
+print()
+
+# Reproducibility
+random_tensor_A = torch.rand(3, 4)
+random_tensor_B = torch.rand(3, 4)
+print(f"Random tensor A: {random_tensor_A}")
+print(f"Random tensor B: {random_tensor_B}")
+print(f"Are they equal? {random_tensor_A == random_tensor_B}")
+torch.manual_seed(42)
+random_tensor_C = torch.rand(3, 4)
+torch.manual_seed(42)
+random_tensor_D = torch.rand(3, 4)
+print(f"Random tensor C: {random_tensor_C}")
+print(f"Random tensor D: {random_tensor_D}")
+print(f"Are they equal? {random_tensor_C == random_tensor_D}")
+# note that the seed must be set before each randomness operation
+print()
+
+# Running on GPUs
+print(f"Check for GPU access: {torch.cuda.is_available()}")
+
+# setup device-agnostic code!
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+tensor_cpu = torch.rand(1, 3)
+print(f"Tensor on CPU: {tensor_cpu, tensor_cpu.device}")
+tensor_gpu = torch.rand(1, 3).to(device)
+print(f"Tensor on GPU: {tensor_gpu, tensor_gpu.device}")
+tensor_cpu_to_gpu = tensor_cpu.to(device)
+print(f"Tensor moved to GPU: {tensor_cpu_to_gpu, tensor_cpu_to_gpu.device}")
+print(
+    f"NumPy only supports CPU operations, so tensors must be moved to CPU to convert to NumPy arrays: {tensor_cpu_to_gpu.cpu().numpy()}"
+)
