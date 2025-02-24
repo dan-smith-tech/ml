@@ -5,18 +5,15 @@ from torch import nn
 
 matplotlib.use("module://matplotlib-backend-kitty")
 
-# create known parameters
-weight = 0.7
-bias = 0.3
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# create data
-start = 0
-end = 1
-step = 0.02
+# create known parameters
+WEIGHT = 0.7
+BIAS = 0.3
 
 # make a straight line with linear regression
-X = torch.arange(start, end, step).unsqueeze(1)
-y = weight * X + bias
+X = torch.arange(0, 1, 0.02).unsqueeze(1)
+y = WEIGHT * X + BIAS
 
 # create train/test split
 train_split = int(0.8 * len(X))
@@ -63,12 +60,21 @@ class LinearRegression(nn.Module):
         )
         self.bias = nn.Parameter(torch.randn(1, dtype=torch.float))
 
+        # note: can also use nn.Linear(1, 1) instead of weights and bias
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.weights * x + self.bias
+
+        # note: can also use self.linear_layer.forward(x)
 
 
 torch.manual_seed(42)
 model_0 = LinearRegression()
+model_0.to(DEVICE)
+
+# put data on the same device as the model
+X_train, y_train = X_train.to(DEVICE), y_train.to(DEVICE)
+X_test, y_test = X_test.to(DEVICE), y_test.to(DEVICE)
 
 # how well does the model predict y_test based on x_test
 with torch.inference_mode():
@@ -77,11 +83,11 @@ with torch.inference_mode():
 
 # plot the predictions
 plot_original = plot_predictions(
-    train_data=X_train,
-    train_labels=y_train,
-    test_data=X_test,
-    test_labels=y_test,
-    predictions=y_preds.detach().numpy(),
+    train_data=X_train.cpu(),
+    train_labels=y_train.cpu(),
+    test_data=X_test.cpu(),
+    test_labels=y_test.cpu(),
+    predictions=y_preds.cpu().detach().numpy(),
 )
 
 # setup loss function
@@ -133,11 +139,11 @@ for epoch in range(epochs):
 
     if epoch % 10 == 0:
         epoch_count.append(epoch)
-        loss_values.append(loss)
-        test_loss_values.append(test_loss)
+        loss_values.append(loss.cpu())
+        test_loss_values.append(test_loss.cpu())
         print(f"Epoch: {epoch} | Train loss: {loss} | Test loss: {test_loss}")
 
-plot_final = plot_predictions(predictions=test_pred)
+plot_final = plot_predictions(predictions=test_pred.cpu().detach().numpy())
 
 plot_original.show()
 plot_final.show()
@@ -151,3 +157,29 @@ plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.legend()
 plt.show()
+
+# save the model
+from pathlib import Path
+
+MODEL_PATH = Path("models")
+MODEL_PATH.mkdir(parents=True, exist_ok=True)
+MODEL_NAME = "01-linear-regression.pt"
+MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
+# torch.save(model_0.state_dict(), MODEL_SAVE_PATH)
+
+# load the model (parameters / state_dict)
+model_0_loaded = LinearRegression()
+model_0_loaded.to(DEVICE)
+model_0_loaded.load_state_dict(torch.load(MODEL_SAVE_PATH))
+model_0_loaded.eval()
+with torch.inference_mode():
+    y_preds_loaded = model_0_loaded(X_test)
+
+plot_loaded = plot_predictions(
+    train_data=X_train.cpu(),
+    train_labels=y_train.cpu(),
+    test_data=X_test.cpu(),
+    test_labels=y_test.cpu(),
+    predictions=y_preds_loaded.cpu().detach().numpy(),
+)
+plot_loaded.show()
